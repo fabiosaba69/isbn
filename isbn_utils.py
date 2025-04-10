@@ -5,7 +5,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 import isbnlib
-import barcode
+from barcode import pybarcode
 from barcode.writer import ImageWriter
 from PIL import Image
 
@@ -74,7 +74,7 @@ def genera_barcode_base64(isbn_str):
         isbn_str = isbnlib.to_isbn13(isbn_str)
     
     # Genera il codice a barre
-    ean = barcode.get('ean13', isbn_str, writer=ImageWriter())
+    ean = pybarcode.create_barcode('ean13', isbn_str, writer=ImageWriter())
     
     # Salva l'immagine in un buffer di memoria
     buffer = io.BytesIO()
@@ -145,7 +145,7 @@ def genera_pdf_barcode(codici, larghezza_mm, altezza_mm, colonne, righe, mostra_
                 isbn = codici[idx].replace(' ', '').replace('-', '')
                 
                 # Genera il barcode come immagine
-                ean = barcode.get('ean13', isbn, writer=ImageWriter())
+                ean = pybarcode.create_barcode('ean13', isbn, writer=ImageWriter())
                 buffer_img = io.BytesIO()
                 ean.write(buffer_img)
                 buffer_img.seek(0)
