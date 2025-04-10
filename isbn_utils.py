@@ -47,11 +47,12 @@ def genera_isbn_casuale():
     remaining_length = 9 - len(language)
     publisher_title = ''.join([str(random.randint(0, 9)) for _ in range(remaining_length)])
     
-    # Combinati senza checksum
+    # Combinati senza checksum (12 cifre)
     partial_isbn = prefix + language + publisher_title
     
-    # Calcola il checksum con isbnlib
-    full_isbn = isbnlib.to_isbn13(partial_isbn)
+    # Calcola il checksum manualmente
+    check_digit = isbnlib.check_digit13(partial_isbn)
+    full_isbn = partial_isbn + str(check_digit)
     
     # Formatta con trattini per leggibilità
     formatted_isbn = isbnlib.mask(full_isbn)
@@ -62,7 +63,7 @@ def genera_barcode_base64(isbn_str):
     Genera un'immagine di codice a barre EAN-13 per l'ISBN fornito
     e restituiscila in formato base64
     """
-    # Normalizza l'ISBN
+    # Normalizza l'ISBN rimuovendo spazi e trattini
     isbn_str = isbn_str.replace(' ', '').replace('-', '')
     
     # Verifica che sia un ISBN valido
@@ -71,9 +72,10 @@ def genera_barcode_base64(isbn_str):
     
     # Converti ISBN-10 in ISBN-13 se necessario
     if len(isbn_str) == 10:
-        isbn_str = isbnlib.to_isbn13(isbn_str)
+        check_digit = isbnlib.check_digit13("978" + isbn_str[:-1])
+        isbn_str = "978" + isbn_str[:-1] + str(check_digit)
     
-    # Genera il codice a barre
+    # Genera il codice a barre (EAN13 accetta solo numeri)
     ean = EAN13(isbn_str, writer=ImageWriter())
     
     # Salva l'immagine in un buffer di memoria
@@ -143,6 +145,11 @@ def genera_pdf_barcode(codici, larghezza_mm, altezza_mm, colonne, righe, mostra_
                     continue
                 
                 isbn = codici[idx].replace(' ', '').replace('-', '')
+                
+                # Converti ISBN-10 in ISBN-13 se necessario
+                if len(isbn) == 10:
+                    check_digit = isbnlib.check_digit13("978" + isbn[:-1])
+                    isbn = "978" + isbn[:-1] + str(check_digit)
                 
                 # Genera il barcode come immagine
                 ean = EAN13(isbn, writer=ImageWriter())
