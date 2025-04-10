@@ -145,7 +145,7 @@ def genera_pdf_barcode(codici, larghezza_mm, altezza_mm, colonne, righe, mostra_
                 isbn = codici[idx].replace(' ', '').replace('-', '')
                 
                 # Genera il barcode come immagine
-                ean = pybarcode.create_barcode('ean13', isbn, writer=ImageWriter())
+                ean = EAN13(isbn, writer=ImageWriter())
                 buffer_img = io.BytesIO()
                 ean.write(buffer_img)
                 buffer_img.seek(0)
