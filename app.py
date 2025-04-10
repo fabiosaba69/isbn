@@ -2,20 +2,71 @@ import os
 import logging
 import io
 import base64
-from flask import Flask, render_template, request, jsonify, send_file, session
+from flask import render_template, request, jsonify, send_file, session
+from main import app, db
 import isbn_utils
+from models import ISBN
 
 # Configurazione logging per debug
 logging.basicConfig(level=logging.DEBUG)
 
-# Creazione dell'applicazione Flask
-app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "chiave_segreta_predefinita")
-
 @app.route('/')
 def index():
     """Renderizza la pagina principale dell'applicazione"""
-    return render_template('index.html')
+    # Ottieni gli ISBN salvati nel database
+    isbn_salvati = ISBN.query.order_by(ISBN.data_creazione.desc()).all()
+    return render_template('index.html', isbn_salvati=[isbn.to_dict() for isbn in isbn_salvati])
+
+@app.route('/salva-isbn', methods=['POST'])
+def salva_isbn():
+    """Salva un ISBN nel database"""
+    try:
+        dati = request.get_json()
+        codice = dati.get('isbn', '').replace(' ', '').replace('-', '')
+        descrizione = dati.get('descrizione', '')
+        
+        # Verifica che l'ISBN sia valido
+        valido, _ = isbn_utils.valida_isbn(codice)
+        if not valido:
+            return jsonify({'success': False, 'error': 'ISBN non valido'})
+        
+        # Verifica se l'ISBN esiste già
+        if ISBN.query.filter_by(codice=codice).first():
+            return jsonify({'success': False, 'error': 'ISBN già presente nel database'})
+        
+        # Crea un nuovo record
+        nuovo_isbn = ISBN(codice=codice, descrizione=descrizione)
+        db.session.add(nuovo_isbn)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'ISBN salvato con successo',
+            'isbn': nuovo_isbn.to_dict()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Errore durante il salvataggio dell'ISBN: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/elimina-isbn/<int:isbn_id>', methods=['DELETE'])
+def elimina_isbn(isbn_id):
+    """Elimina un ISBN dal database"""
+    try:
+        isbn = ISBN.query.get(isbn_id)
+        if not isbn:
+            return jsonify({'success': False, 'error': 'ISBN non trovato'})
+        
+        db.session.delete(isbn)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'ISBN eliminato con successo'})
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Errore durante l'eliminazione dell'ISBN: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/genera-isbn', methods=['POST'])
 def genera_isbn():

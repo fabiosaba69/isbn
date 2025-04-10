@@ -20,6 +20,57 @@
             </div>
         </div>
     </div>
+    
+    <!-- LISTA ISBN SALVATI NEL DATABASE -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-database me-2"></i>ISBN Salvati nel Database</h5>
+                    <button id="btnReloadSalvati" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-sync-alt"></i> Aggiorna
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Codice ISBN</th>
+                                    <th>Descrizione</th>
+                                    <th>Data</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableIsbnSalvati">
+                                {% if isbn_salvati %}
+                                    {% for isbn in isbn_salvati %}
+                                    <tr>
+                                        <td>{{ isbn.codice }}</td>
+                                        <td>{{ isbn.descrizione }}</td>
+                                        <td>{{ isbn.data_creazione }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-secondary btn-use-isbn" data-isbn="{{ isbn.codice }}">
+                                                <i class="fas fa-plus"></i> Usa
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger btn-delete-isbn" data-id="{{ isbn.id }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center">Nessun ISBN salvato nel database</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="row">
         <!-- GENERAZIONE ISBN -->
@@ -87,9 +138,14 @@
                             <button id="btnClearList" class="btn btn-outline-danger btn-sm" disabled>
                                 <i class="fas fa-trash"></i> Svuota lista
                             </button>
-                            <button id="btnAggiungiSelezionati" class="btn btn-primary btn-sm" disabled>
-                                <i class="fas fa-arrow-right"></i> Usa per la stampa
-                            </button>
+                            <div>
+                                <button id="btnSalvaDatabase" class="btn btn-outline-success btn-sm" disabled>
+                                    <i class="fas fa-save"></i> Salva nel DB
+                                </button>
+                                <button id="btnAggiungiSelezionati" class="btn btn-primary btn-sm" disabled>
+                                    <i class="fas fa-arrow-right"></i> Usa per la stampa
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -209,6 +265,34 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal per salvare ISBN nel database -->
+<div class="modal fade" id="saveIsbnModal" tabindex="-1" aria-labelledby="saveIsbnModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="saveIsbnModalLabel">Salva ISBN nel database</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formSalvaIsbn">
+                    <div class="mb-3">
+                        <label for="isbnToSave" class="form-label">ISBN</label>
+                        <input type="text" class="form-control" id="isbnToSave" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descrizioneIsbn" class="form-label">Descrizione</label>
+                        <input type="text" class="form-control" id="descrizioneIsbn" 
+                               placeholder="Es. Libro XYZ, Catalogo prodotti, ecc.">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmSave">Salva</button>
             </div>
         </div>
     </div>

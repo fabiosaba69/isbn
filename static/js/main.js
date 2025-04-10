@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const listaISBN = document.getElementById('listaISBN');
     const countISBN = document.getElementById('countISBN');
     const btnClearList = document.getElementById('btnClearList');
+    const btnSalvaDatabase = document.getElementById('btnSalvaDatabase');
     const btnAggiungiSelezionati = document.getElementById('btnAggiungiSelezionati');
     const listaStampa = document.getElementById('listaStampa');
     const countStampa = document.getElementById('countStampa');
@@ -20,6 +21,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnChiudiAnteprima = document.getElementById('btnChiudiAnteprima');
     const anteprimaContainer = document.getElementById('anteprima-container');
     const pdfViewer = document.getElementById('pdf-viewer');
+    const btnReloadSalvati = document.getElementById('btnReloadSalvati');
+    
+    // Modal elementi
+    const saveIsbnModal = new bootstrap.Modal(document.getElementById('saveIsbnModal'));
+    const isbnToSave = document.getElementById('isbnToSave');
+    const descrizioneIsbn = document.getElementById('descrizioneIsbn');
+    const btnConfirmSave = document.getElementById('btnConfirmSave');
     
     // Variabili di stato
     let isbnList = [];
@@ -150,11 +158,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Aggiorna lo stato dei pulsanti
         btnClearList.disabled = isbnList.length === 0;
         btnAggiungiSelezionati.disabled = isbnList.length === 0;
+        btnSalvaDatabase.disabled = isbnList.length === 0;
         
         // Aggiungi elementi alla lista
         isbnList.forEach((isbn, index) => {
             const listItem = document.createElement('li');
-            listItem.className = 'list-group-item';
+            listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
             
             // Crea l'elemento per l'ISBN
             const isbnText = document.createElement('span');
@@ -170,6 +179,13 @@ document.addEventListener('DOMContentLoaded', function() {
             previewBtn.title = 'Anteprima barcode';
             previewBtn.addEventListener('click', () => mostraAnteprimaBarcode(isbn));
             
+            // Crea il pulsante per salvare nel database
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'btn btn-sm btn-outline-success me-1';
+            saveBtn.innerHTML = '<i class="fas fa-save"></i>';
+            saveBtn.title = 'Salva nel database';
+            saveBtn.addEventListener('click', () => mostraModalSalvataggio(isbn));
+            
             // Crea il pulsante per la rimozione
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'btn btn-sm btn-outline-danger';
@@ -179,6 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Aggiungi i pulsanti al container
             buttonsContainer.appendChild(previewBtn);
+            buttonsContainer.appendChild(saveBtn);
             buttonsContainer.appendChild(deleteBtn);
             
             // Aggiungi elementi al listItem
@@ -439,4 +456,207 @@ document.addEventListener('DOMContentLoaded', function() {
     btnScaricaPDF.addEventListener('click', function() {
         window.location.href = '/scarica-pdf';
     });
+    
+    // Mostra il modal per salvare l'ISBN nel database
+    function mostraModalSalvataggio(isbn) {
+        // Popola il campo ISBN nel modal
+        isbnToSave.value = isbn;
+        descrizioneIsbn.value = '';
+        
+        // Mostra il modal
+        saveIsbnModal.show();
+    }
+    
+    // Gestione del pulsante "Salva" nel modal
+    btnConfirmSave.addEventListener('click', function() {
+        const isbn = isbnToSave.value;
+        const descrizione = descrizioneIsbn.value;
+        
+        // Disabilita il pulsante durante il salvataggio
+        btnConfirmSave.disabled = true;
+        btnConfirmSave.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvataggio...';
+        
+        // Invia la richiesta al server
+        fetch('/salva-isbn', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                isbn: isbn,
+                descrizione: descrizione
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Ripristina il pulsante
+            btnConfirmSave.disabled = false;
+            btnConfirmSave.innerHTML = 'Salva';
+            
+            if (data.success) {
+                // Chiudi il modal
+                saveIsbnModal.hide();
+                
+                // Aggiorna la tabella degli ISBN salvati
+                caricaIsbnSalvati();
+                
+                // Mostra messaggio di successo
+                alert('ISBN salvato con successo nel database');
+            } else {
+                // Mostra errore
+                alert('Errore durante il salvataggio: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Errore fetch:', error);
+            btnConfirmSave.disabled = false;
+            btnConfirmSave.innerHTML = 'Salva';
+            alert('Errore di connessione durante il salvataggio');
+        });
+    });
+    
+    // Pulsante per salvare tutti gli ISBN selezionati
+    btnSalvaDatabase.addEventListener('click', function() {
+        if (isbnList.length === 0) return;
+        
+        if (isbnList.length > 1) {
+            // Per salvare più ISBN, chiediamo una descrizione generale
+            const descrizione = prompt('Inserisci una descrizione per questi ISBN:');
+            if (descrizione === null) return; // Annullato
+            
+            // Mostro messaggio di attesa
+            alert('Sto salvando ' + isbnList.length + ' ISBN nel database. Attendi...');
+            
+            // Salva ogni ISBN uno alla volta con la stessa descrizione
+            let salvati = 0;
+            let errori = 0;
+            
+            const salvaIsbn = (index) => {
+                if (index >= isbnList.length) {
+                    // Completato
+                    alert('Salvataggio completato. Salvati: ' + salvati + ', Errori: ' + errori);
+                    caricaIsbnSalvati();
+                    return;
+                }
+                
+                const isbn = isbnList[index];
+                
+                fetch('/salva-isbn', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        isbn: isbn,
+                        descrizione: descrizione + ' (' + (index + 1) + '/' + isbnList.length + ')'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        salvati++;
+                    } else {
+                        errori++;
+                        console.error('Errore salvataggio ISBN ' + isbn + ': ' + data.error);
+                    }
+                    
+                    // Passa al prossimo
+                    salvaIsbn(index + 1);
+                })
+                .catch(error => {
+                    errori++;
+                    console.error('Errore fetch per ISBN ' + isbn + ': ' + error);
+                    // Passa al prossimo
+                    salvaIsbn(index + 1);
+                });
+            };
+            
+            // Inizia il salvataggio dal primo ISBN
+            salvaIsbn(0);
+        } else {
+            // Se c'è un solo ISBN, mostra il modal
+            mostraModalSalvataggio(isbnList[0]);
+        }
+    });
+    
+    // Funzione per ricaricare gli ISBN salvati dal database
+    function caricaIsbnSalvati() {
+        const tableBody = document.getElementById('tableIsbnSalvati');
+        if (!tableBody) return;
+        
+        // Mostra indicatore di caricamento
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center"><i class="fas fa-spinner fa-spin"></i> Caricamento...</td></tr>';
+        
+        // Richiedi i dati dal server
+        fetch('/')
+            .then(response => response.text())
+            .then(html => {
+                // Crea un elemento DOM temporaneo per analizzare l'HTML
+                const temp = document.createElement('div');
+                temp.innerHTML = html;
+                
+                // Estrai la tabella degli ISBN salvati
+                const newTableBody = temp.querySelector('#tableIsbnSalvati');
+                if (newTableBody) {
+                    tableBody.innerHTML = newTableBody.innerHTML;
+                    
+                    // Aggiungi event listener ai pulsanti
+                    aggiungiEventListenerTabellaIsbn();
+                } else {
+                    tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Errore durante il caricamento</td></tr>';
+                }
+            })
+            .catch(error => {
+                console.error('Errore fetch:', error);
+                tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Errore di connessione</td></tr>';
+            });
+    }
+    
+    // Aggiunge event listener ai pulsanti nella tabella ISBN
+    function aggiungiEventListenerTabellaIsbn() {
+        // Pulsanti per utilizzare gli ISBN salvati
+        document.querySelectorAll('.btn-use-isbn').forEach(button => {
+            button.addEventListener('click', function() {
+                const isbn = this.dataset.isbn;
+                aggiungiIsbnAllaLista(isbn);
+            });
+        });
+        
+        // Pulsanti per eliminare gli ISBN salvati
+        document.querySelectorAll('.btn-delete-isbn').forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.dataset.id;
+                if (confirm('Sei sicuro di voler eliminare questo ISBN dal database?')) {
+                    eliminaIsbnDalDatabase(id);
+                }
+            });
+        });
+    }
+    
+    // Elimina un ISBN dal database
+    function eliminaIsbnDalDatabase(id) {
+        fetch('/elimina-isbn/' + id, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Aggiorna la tabella
+                caricaIsbnSalvati();
+                alert('ISBN eliminato con successo');
+            } else {
+                alert('Errore durante l\'eliminazione: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Errore fetch:', error);
+            alert('Errore di connessione durante l\'eliminazione');
+        });
+    }
+    
+    // Aggiungi event listener al pulsante di ricarica
+    btnReloadSalvati.addEventListener('click', caricaIsbnSalvati);
+    
+    // Aggiungi event listener ai pulsanti nella tabella quando la pagina è caricata
+    aggiungiEventListenerTabellaIsbn();
 });

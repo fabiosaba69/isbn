@@ -1,0 +1,28 @@
+<!-- Modal per salvare ISBN nel database -->
+<div class="modal fade" id="saveIsbnModal" tabindex="-1" aria-labelledby="saveIsbnModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="saveIsbnModalLabel">Salva ISBN nel database</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formSalvaIsbn">
+                    <div class="mb-3">
+                        <label for="isbnToSave" class="form-label">ISBN</label>
+                        <input type="text" class="form-control" id="isbnToSave" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descrizioneIsbn" class="form-label">Descrizione</label>
+                        <input type="text" class="form-control" id="descrizioneIsbn" 
+                               placeholder="Es. Libro XYZ, Catalogo prodotti, ecc.">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmSave">Salva</button>
+            </div>
+        </div>
+    </div>
+</div>
