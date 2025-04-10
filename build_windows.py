@@ -4,12 +4,10 @@ import sys
 import os
 
 PyInstaller.__main__.run([
-    'main.py',
+    'app.py',  # Changed from main.py since app.py contains the Flask application
     '--onefile',
-    '--windowed',
-    '--add-data=templates;templates',
-    '--add-data=static;static',
-    '--icon=generated-icon.png',
+    '--add-data=templates:templates',
+    '--add-data=static:static',
     '--name=ISBN_Manager',
     '--hidden-import=flask',
     '--hidden-import=sqlalchemy',
