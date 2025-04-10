@@ -2,6 +2,8 @@ import os
 import logging
 import io
 import base64
+import uuid
+import time
 from flask import render_template, request, jsonify, send_file, session
 from main import app, db
 import isbn_utils
@@ -131,15 +133,28 @@ def genera_pdf():
             codici, larghezza, altezza, colonne, righe, mostra_testo
         )
         
-        # Converti il buffer in base64 per l'anteprima
+        # Genera un ID univoco per il PDF
+        pdf_id = str(uuid.uuid4())
+        pdf_path = os.path.join('/tmp', f'pdf_{pdf_id}.pdf')
+        
+        # Salva il PDF su file system
+        with open(pdf_path, 'wb') as f:
+            f.write(pdf_buffer.getvalue())
+        
+        # Memorizza il path in sessione
+        session['ultimo_pdf_path'] = pdf_path
+        session['pdf_creation_time'] = time.time()
+        
+        # Converti in base64 per l'anteprima
         pdf_base64 = base64.b64encode(pdf_buffer.getvalue()).decode('utf-8')
         
-        # Memorizza il PDF in sessione per il download
-        session['ultimo_pdf'] = pdf_buffer.getvalue()
+        # Pulisci i vecchi file PDF
+        pulisci_pdf_temporanei()
         
         return jsonify({
             'success': True, 
-            'pdf_base64': pdf_base64
+            'pdf_base64': pdf_base64,
+            'pdf_id': pdf_id
         })
         
     except Exception as e:
@@ -149,16 +164,31 @@ def genera_pdf():
             'error': 'Si è verificato un errore durante la generazione del PDF. ' + str(e)
         }), 500
 
+def pulisci_pdf_temporanei():
+    """Elimina i file PDF temporanei più vecchi di 1 ora"""
+    try:
+        for filename in os.listdir('/tmp'):
+            if filename.startswith('pdf_') and filename.endswith('.pdf'):
+                filepath = os.path.join('/tmp', filename)
+                if time.time() - os.path.getctime(filepath) > 3600:  # 1 ora
+                    os.remove(filepath)
+    except Exception as e:
+        logging.warning(f"Errore durante la pulizia dei PDF temporanei: {str(e)}")
+
 @app.route('/scarica-pdf', methods=['GET'])
 def scarica_pdf():
     """Scarica l'ultimo PDF generato"""
     try:
-        if 'ultimo_pdf' not in session:
+        if 'ultimo_pdf_path' not in session:
             return "Nessun PDF disponibile per il download", 404
             
-        pdf_data = session['ultimo_pdf']
+        pdf_path = session['ultimo_pdf_path']
+        
+        if not os.path.exists(pdf_path):
+            return "PDF non più disponibile", 404
+            
         return send_file(
-            io.BytesIO(pdf_data),
+            pdf_path,
             mimetype='application/pdf',
             as_attachment=True,
             download_name='codici_isbn.pdf'

@@ -386,14 +386,23 @@ document.addEventListener('DOMContentLoaded', function() {
             btnGeneraPDF.disabled = false;
             btnGeneraPDF.innerHTML = '<i class="fas fa-file-pdf me-1"></i> Genera PDF';
             console.error('Errore fetch:', error);
-            alert('Errore durante la generazione del PDF. Per favore riprova. Se il problema persiste, prova a ridurre il numero di codici o le dimensioni del PDF.');
             
-            // Riprova automaticamente una volta
-            setTimeout(() => {
-                if (confirm('Vuoi riprovare a generare il PDF?')) {
-                    btnGeneraPDF.click();
-                }
-            }, 1000);
+            // Mostra un messaggio più dettagliato
+            const errorMessage = 'Si è verificato un errore durante la generazione del PDF.\n\n' +
+                'Possibili soluzioni:\n' +
+                '1. Ridurre il numero di codici a barre per pagina\n' +
+                '2. Ridurre le dimensioni dei codici\n' +
+                '3. Dividere la generazione in più PDF più piccoli\n\n' +
+                'Vuoi riprovare con dimensioni ridotte?';
+            
+            if (confirm(errorMessage)) {
+                // Riduci automaticamente le dimensioni
+                const larghezza = document.getElementById('impostazioneLarghezza');
+                const altezza = document.getElementById('impostazioneAltezza');
+                larghezza.value = Math.max(30, parseFloat(larghezza.value) * 0.8);
+                altezza.value = Math.max(20, parseFloat(altezza.value) * 0.8);
+                btnGeneraPDF.click();
+            }
         });
     });
     
