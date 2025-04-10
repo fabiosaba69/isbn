@@ -386,7 +386,14 @@ document.addEventListener('DOMContentLoaded', function() {
             btnGeneraPDF.disabled = false;
             btnGeneraPDF.innerHTML = '<i class="fas fa-file-pdf me-1"></i> Genera PDF';
             console.error('Errore fetch:', error);
-            alert('Errore di connessione durante la generazione del PDF');
+            alert('Errore durante la generazione del PDF. Per favore riprova. Se il problema persiste, prova a ridurre il numero di codici o le dimensioni del PDF.');
+            
+            // Riprova automaticamente una volta
+            setTimeout(() => {
+                if (confirm('Vuoi riprovare a generare il PDF?')) {
+                    btnGeneraPDF.click();
+                }
+            }, 1000);
         });
     });
     

@@ -143,8 +143,11 @@ def genera_pdf():
         })
         
     except Exception as e:
-        logging.error(f"Errore durante la generazione del PDF: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)})
+        logging.error(f"Errore durante la generazione del PDF: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False, 
+            'error': 'Si è verificato un errore durante la generazione del PDF. ' + str(e)
+        }), 500
 
 @app.route('/scarica-pdf', methods=['GET'])
 def scarica_pdf():
