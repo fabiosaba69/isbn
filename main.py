@@ -21,6 +21,10 @@ if db_url:
         "pool_pre_ping": True,
     }
     print(f"Database configurato con URL: {db_url}")
+else:
+    # Use SQLite as default database
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///isbn_database.db"
+    print("Database configurato con SQLite locale")
 # initialize the app with the extension, flask-sqlalchemy >= 3.0.x
 db.init_app(app)
 
